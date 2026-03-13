@@ -597,35 +597,6 @@
                 newImg.src = newImgData;
             };
 
-            const handleSaveImage = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = imageObj.width;
-                canvas.height = imageObj.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imageObj, 0, 0);
-                
-                boxes.forEach(box => {
-                    ctx.fillStyle = box.bgColor || '#1E293B';
-                    ctx.fillRect(box.x, box.y, box.w, box.h);
-                    ctx.fillStyle = box.color;
-                    ctx.font = `${box.weight === 'Bold' ? 'bold' : 'normal'} ${box.size}px ${box.font}`;
-                    ctx.textAlign = box.align === 'center' ? 'center' : (box.align === 'right' ? 'right' : 'left');
-                    ctx.textBaseline = box.valign === 'middle' ? 'middle' : (box.valign === 'bottom' ? 'bottom' : 'top');
-                    let textX = box.x;
-                    if (box.align === 'center') textX = box.x + box.w / 2;
-                    else if (box.align === 'right') textX = box.x + box.w;
-                    let textY = box.y;
-                    if (box.valign === 'middle') textY = box.y + box.h / 2;
-                    else if (box.valign === 'bottom') textY = box.y + box.h;
-                    ctx.fillText(box.currentText, textX, textY);
-                });
-
-                const link = document.createElement('a');
-                link.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-                link.download = "corrected_image.png";
-                link.click();
-            };
-
             const executeReset = () => {
                 setImage(null);
                 setImageObj(null);
@@ -744,11 +715,6 @@
                                     <span>File Upload</span>
                                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                                 </label>
-                                
-                                <button onClick={handleSaveImage} disabled={!image} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${image ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
-                                    <IconDownload />
-                                    <span>Save your image</span>
-                                </button>
                             </div>
                         </div>
 
