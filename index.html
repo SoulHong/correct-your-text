@@ -33,7 +33,10 @@
     <script type="text/babel">
         const { useState, useRef, useEffect, useCallback } = React;
 
-        const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg>;
+        // 추가된 아이콘 (도구 토글용)
+        const IconCrosshair = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" x2="18" y1="12" y2="12"/><line x1="6" x2="2" y1="12" y2="12"/><line x1="12" x2="12" y1="6" y2="2"/><line x1="12" x2="12" y1="22" y2="18"/></svg>;
+        const IconHand = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>;
+
         const IconHistory = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>;
         const IconTrash2 = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
         const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>;
@@ -55,6 +58,7 @@
             const [imageObj, setImageObj] = useState(null);
             
             // Editor State
+            const [activeTool, setActiveTool] = useState('DRAW'); // 'DRAW', 'PAN'
             const [boxes, setBoxes] = useState([]);
             const [selectedBoxId, setSelectedBoxId] = useState(null);
             
@@ -182,7 +186,7 @@
                 };
             }, [undo, redo]);
 
-            // Mouse Wheel Zoom
+            // Mouse Wheel Zoom & Touchpad Pan
             useEffect(() => {
                 const container = containerRef.current;
                 if (!container) return;
@@ -193,18 +197,28 @@
                     const mouseX = e.clientX - rect.left;
                     const mouseY = e.clientY - rect.top;
 
-                    setView(v => {
-                        const zoomAmount = e.deltaY > 0 ? 0.9 : 1.1;
-                        const newScale = Math.min(Math.max(0.05, v.scale * zoomAmount), 10);
-                        const unscaledX = (mouseX - v.panX) / v.scale;
-                        const unscaledY = (mouseY - v.panY) / v.scale;
+                    if (e.ctrlKey || e.metaKey) {
+                        // Pinch to Zoom (Ctrl + Wheel)
+                        setView(v => {
+                            const zoomAmount = e.deltaY > 0 ? 0.9 : 1.1;
+                            const newScale = Math.min(Math.max(0.05, v.scale * zoomAmount), 10);
+                            const unscaledX = (mouseX - v.panX) / v.scale;
+                            const unscaledY = (mouseY - v.panY) / v.scale;
 
-                        return {
-                            scale: newScale,
-                            panX: mouseX - unscaledX * newScale,
-                            panY: mouseY - unscaledY * newScale
-                        };
-                    });
+                            return {
+                                scale: newScale,
+                                panX: mouseX - unscaledX * newScale,
+                                panY: mouseY - unscaledY * newScale
+                            };
+                        });
+                    } else {
+                        // Two-finger Touchpad Pan (Regular Wheel without Ctrl)
+                        setView(v => ({
+                            ...v,
+                            panX: v.panX - e.deltaX,
+                            panY: v.panY - e.deltaY
+                        }));
+                    }
                 };
                 
                 container.addEventListener('wheel', handleWheelNative, { passive: false });
@@ -329,7 +343,12 @@
             };
 
             const handleMouseDown = (e) => {
-                if (e.button === 1 || window.__isSpaceDown) {
+                if (e.button === 1 || window.__isSpaceDown || (e.button === 0 && activeTool === 'PAN')) {
+                    const { x, y } = getMousePosInImage(e);
+                    const hitBox = [...boxes].reverse().find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h);
+                    if (hitBox) setSelectedBoxId(hitBox.id);
+                    else setSelectedBoxId(null);
+                    
                     setMode('PANNING');
                     setLastPan({ x: e.clientX, y: e.clientY });
                     return;
@@ -364,8 +383,11 @@
 
             const handleMouseMove = (e) => {
                 // Determine hover cursor style when idle
-                if (mode === 'IDLE' || window.__isSpaceDown) {
-                    if (window.__isSpaceDown) { setHoverCursor('cursor-grab'); return; }
+                if (mode === 'IDLE') {
+                    if (window.__isSpaceDown || activeTool === 'PAN') { 
+                        setHoverCursor('cursor-grab'); 
+                        return; 
+                    }
                     const { x, y } = getMousePosInImage(e);
                     const handleHit = selectedBoxId ? checkHandleHit(x, y, boxes.find(b => b.id === selectedBoxId)) : null;
                     if (handleHit) {
@@ -618,7 +640,10 @@
             };
 
             const selectedBox = boxes.find(b => b.id === selectedBoxId);
-            const activeCursor = mode === 'PANNING' ? 'cursor-grabbing' : (mode.startsWith('RESIZE') || mode === 'MOVING' ? 'cursor-move' : hoverCursor);
+            let activeCursor = hoverCursor;
+            if (mode === 'PANNING') activeCursor = 'cursor-grabbing';
+            else if (activeTool === 'PAN') activeCursor = 'cursor-grab';
+            else if (mode.startsWith('RESIZE') || mode === 'MOVING') activeCursor = 'cursor-move';
 
             return (
                 <div className="flex h-screen w-full font-sans text-sm relative">
@@ -641,8 +666,22 @@
 
                     {/* Left Sidebar */}
                     <div className="w-16 flex flex-col items-center py-4 gap-4 sidebar-left border-r border-slate-700 shrink-0">
-                        <div className="p-2 bg-blue-600 rounded-lg text-white mb-2 cursor-pointer">
-                            <IconFileText />
+                        {/* Tools (DRAW / PAN) */}
+                        <div className="flex flex-col gap-2 w-full px-2">
+                            <button 
+                                onClick={() => setActiveTool('DRAW')} 
+                                className={`p-2 w-full flex justify-center rounded-lg transition ${activeTool === 'DRAW' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} 
+                                title="영역 지정 도구 (Draw)"
+                            >
+                                <IconCrosshair />
+                            </button>
+                            <button 
+                                onClick={() => setActiveTool('PAN')} 
+                                className={`p-2 w-full flex justify-center rounded-lg transition ${activeTool === 'PAN' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`} 
+                                title="화면 이동 도구 (Pan)"
+                            >
+                                <IconHand />
+                            </button>
                         </div>
                         
                         {/* Undo & Redo Toolbars */}
@@ -673,49 +712,42 @@
                     {/* Main Content Area */}
                     <div className="flex-1 flex flex-col min-w-0">
                         {/* Top Bar */}
-                        <div className="flex items-stretch border-b border-slate-700 bg-[#1E293B] z-10 top-bar overflow-x-auto overflow-y-hidden">
-                            <div className="flex items-center px-5 gap-3 border-r border-slate-700 py-3 shrink-0">
-                                <div className="text-sm font-medium leading-tight text-white tracking-wide">
-                                    Your<br/>Text in<br/>Images
+                        <div className="flex items-center h-16 border-b border-slate-700 bg-[#1E293B] z-10 shrink-0 px-6 gap-6">
+                            {/* Logo */}
+                            <div className="flex items-center gap-3 shrink-0">
+                                <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white shadow-sm">
+                                    <span className="font-serif italic font-bold text-lg">T</span>
                                 </div>
+                                <span className="text-white font-semibold tracking-wide text-lg">Text in Image Editor</span>
                             </div>
-                            
-                            <div className="flex items-center px-5 gap-4 border-r border-slate-700 py-3 shrink-0">
-                                <label className="text-slate-300 text-xs leading-tight whitespace-nowrap">
-                                    Gemini<br/>API key :
-                                </label>
+
+                            <div className="w-px h-8 bg-slate-700 shrink-0"></div>
+
+                            {/* API Key */}
+                            <div className="flex items-center gap-3 shrink-0">
+                                <label className="text-slate-400 text-sm font-medium">Gemini API Key</label>
                                 <input 
                                     type="password" 
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
-                                    className="bg-slate-800 border border-slate-600 rounded px-3 py-1.5 w-60 focus:outline-none focus:border-blue-500 text-slate-200"
-                                    placeholder="Enter your API key"
+                                    className="bg-slate-900/50 border border-slate-600 rounded-lg px-4 py-2 w-64 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-200 text-sm transition-all"
+                                    placeholder="Paste your key here..."
                                 />
                             </div>
-                            
+
                             <div className="flex-1 min-w-[20px]"></div>
 
-                            <div className="flex shrink-0">
-                                <label className="flex flex-col items-center justify-center w-[4.5rem] border-l border-slate-700 cursor-pointer hover:bg-slate-700 transition text-[11px] text-slate-300 py-2">
+                            {/* Actions */}
+                            <div className="flex shrink-0 gap-3">
+                                <label className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors text-sm text-slate-200 font-medium">
                                     <IconUpload />
-                                    <div className="mt-1 text-center leading-tight flex flex-col">
-                                        <span>파</span><span>일</span><span>업</span><span>로</span><span>드</span>
-                                    </div>
+                                    <span>File Upload</span>
                                     <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                                 </label>
                                 
-                                <button onClick={handleSaveImage} className="flex flex-col items-center justify-center w-[4.5rem] border-l border-slate-700 hover:bg-slate-700 transition text-[11px] text-slate-300 py-2">
+                                <button onClick={handleSaveImage} disabled={!image} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${image ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
                                     <IconDownload />
-                                    <div className="mt-1 text-center leading-tight flex flex-col">
-                                        <span>이</span><span>미</span><span>지</span><span>저</span><span>장</span>
-                                    </div>
-                                </button>
-
-                                <button className="flex flex-col items-center justify-center w-24 border-l border-slate-700 bg-blue-600 hover:bg-blue-700 text-white transition text-xs py-2">
-                                    <IconFileDown className="mb-1" />
-                                    <div className="text-center font-medium leading-[1.1] tracking-wide">
-                                        PDF<br/>다 운<br/>로 드
-                                    </div>
+                                    <span>Save your image</span>
                                 </button>
                             </div>
                         </div>
@@ -727,10 +759,10 @@
                                     <div className="w-32 h-32 bg-slate-800/50 rounded-3xl flex items-center justify-center mb-8 border border-slate-700/50">
                                         <IconImage />
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white mb-4">이미지 속 뭉개진 텍스트 에디터</h2>
-                                    <p className="text-center mb-8">PDF 또는 이미지를 업로드하여 지능형 텍스트 교<br/>체를 시작하세요.</p>
+                                    <h2 className="text-2xl font-bold text-white mb-4">Text in Image Editor</h2>
+                                    <p className="text-center mb-8">이미지를 업로드하여 지능형 텍스트 교<br/>체를 시작하세요.</p>
                                     <label className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer font-medium transition shadow-lg shadow-blue-600/20 pointer-events-auto">
-                                        파일 선택
+                                        File Upload
                                         <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
                                     </label>
                                 </div>
@@ -957,5 +989,4 @@
         root.render(<App />);
     </script>
 </body>
-
 </html>
