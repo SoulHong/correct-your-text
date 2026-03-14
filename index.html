@@ -552,7 +552,7 @@
 
                     // Prepare Parts Array for Gemini
                     const parts = [
-                        { text: "Analyze the FIRST image crop containing text. Extract the text accurately from the FIRST image. If there are additional images provided, use them ONLY as context/reference to estimate the overall tone, main text color, background color, and font weight. Return ONLY a valid JSON object matching this schema: {\"text\": \"extracted text (empty if none)\", \"color\": \"#HEXCOLOR\", \"bgColor\": \"#HEXCOLOR\", \"weight\": \"Bold\" or \"Normal\"}." },
+                        { text: "Analyze the FIRST image crop containing text. Extract the text accurately from the FIRST image. If there are additional images provided, use them ONLY as context/reference to estimate the overall tone, main text color, background color, font weight, and closest font family. Return ONLY a valid JSON object matching this schema: {\"text\": \"extracted text (empty if none)\", \"color\": \"#HEXCOLOR\", \"bgColor\": \"#HEXCOLOR\", \"weight\": \"Bold\" or \"Normal\", \"fontFamily\": \"Inter\" or \"Arial\" or \"Malgun Gothic\" or \"Nanum Gothic\"}." },
                         { inlineData: { mimeType: "image/jpeg", data: base64Image } }
                     ];
 
@@ -589,6 +589,8 @@
                     } catch (e) { console.error("JSON Parsing failed", e); }
                     
                     const isValidHex = (hex) => /^#([0-9A-F]{3}){1,2}$/i.test(hex);
+                    const validFonts = ['Inter', 'Arial', 'Malgun Gothic', 'Nanum Gothic'];
+                    const detectedFont = validFonts.includes(parsed.fontFamily) ? parsed.fontFamily : "Inter";
 
                     updateBox(box.id, { 
                         originalText: parsed.text || "텍스트 없음", 
@@ -596,7 +598,7 @@
                         color: parsed.color && isValidHex(parsed.color) ? parsed.color : box.color,
                         bgColor: parsed.bgColor && isValidHex(parsed.bgColor) ? parsed.bgColor : box.bgColor,
                         weight: parsed.weight || box.weight,
-                        font: "Inter" // AI 추론값 무시하고 무조건 Inter로 고정
+                        font: detectedFont
                     }, true);
 
                 } catch (error) {
